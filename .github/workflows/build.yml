@@ -1,8 +1,8 @@
-name: Build
+name: CI
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # This sets the action to run daily at midnight (00:00 UTC)
+    - cron: '0 0 * * *'  # Runs daily at midnight (00:00 UTC)
   push:
     branches: [ main ]
   pull_request:
@@ -13,11 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      
+      # Step to download the BuildTools.jar file
+      - name: Download BuildTools.jar
+        run: curl -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
+
       - uses: actions/setup-java@v1
         with:
           java-version: 21
+          
       - name: Run with Java
         run: java -jar BuildTools.jar --rev latest
+        
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
