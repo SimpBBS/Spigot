@@ -50,60 +50,19 @@ jobs:
           name: Spigot Artifacts
           path: ./spigot-*.jar
 
-  cleanup-release:
+  release:
     runs-on: ubuntu-latest
     needs: build
     if: ${{ github.event_name != 'issues' }}
     steps:
-      - name: Delete Old Release
-        uses: octokit/delete-release@v1
+      - name: Auto release
+        uses: marvinpinto/action-automatic-releases@latest
         with:
-          release_id: ${{ steps.get_release.outputs.id }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Delete Old Tag
-        run: |
-          git tag -d latest
-          git push origin :refs/tags/latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  upload-release:
-    runs-on: ubuntu-latest
-    needs: [build, cleanup-release]
-    if: ${{ github.event_name != 'issues' }}
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: Spigot Artifacts
-
-      - name: List downloaded files
-        run: ls -alh  # Verify the downloaded artifacts
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use default token
-        with:
-          tag_name: 'latest'  # Use 'latest' as tag name
-          release_name: 'latest'  # Use 'latest' as release name
-          draft: false
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: latest
           prerelease: false
-
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use default token
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./spigot-*.jar  # Ensure correct file path
-          asset_name: 'spigot-${{ env.VERSION }}.jar'  # Use version in asset name
-          asset_content_type: application/java-archive
+          files: |
+            spigot-*.jar
 
   close-issue:
     runs-on: ubuntu-latest
