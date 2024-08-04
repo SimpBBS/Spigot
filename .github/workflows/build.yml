@@ -27,14 +27,18 @@ jobs:
       - name: Determine Version
         id: determine_version
         run: |
+          # Check if the event is triggered by an issue
           if [ "${{ github.event_name }}" == "issues" ]; then
-            VERSION=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=- Build Version\n\s{4}value: )\S+')
+            # Attempt to extract the build version from the issue body
+            VERSION=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=id: build-version\n\s{2}value: )\S+' || echo "")
+            # Check if VERSION is empty and set to 'latest' if necessary
             if [ -z "$VERSION" ]; then
               echo "VERSION=latest" >> $GITHUB_ENV
             else
               echo "VERSION=$VERSION" >> $GITHUB_ENV
             fi
           else
+            # Set VERSION to 'latest' for non-issue events
             echo "VERSION=latest" >> $GITHUB_ENV
           fi
 
