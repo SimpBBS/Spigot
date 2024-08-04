@@ -13,72 +13,72 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      
+
+      # Step to download the BuildTools.jar file
       - name: Download BuildTools.jar
-        # Download the latest BuildTools.jar
         run: curl -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
 
       - uses: actions/setup-java@v1
         with:
           java-version: 21
 
-      - name: Build and Upload Versions
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Array of all Minecraft versions to build
-          versions=(latest 1.20.4 1.20.3 1.20.2 1.20.1 1.19.4 1.19.3 1.19.2 1.19.1 1.19 1.18.2 1.18.1 1.18 1.17.1 1.17 1.16.5 1.16.4 1.16.3 1.16.2 1.16.1 1.15.2 1.15.1 1.15 1.14.4 1.14.3 1.14.2 1.14.1 1.14 1.13.2 1.13.1 1.13 1.12.2 1.12.1 1.12 1.11.2 1.11.1 1.11 1.10.2 1.9.4 1.9.2 1.9 1.8.8 1.8.3 1.8)
-          
-          for version in "${versions[@]}"; do
-            echo "Building version $version"
-            java -jar BuildTools.jar --rev $version
+      - name: Run with Java
+        run: java -jar BuildTools.jar --rev latest
 
-            # Create a directory for this version's artifacts
-            mkdir -p artifacts
-            find . -name "spigot-$version*.jar" -exec cp {} artifacts/ \;
+      # Save output as artifact to pass to next jobs
+      - name: Save Build Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: ./*.jar
 
-            # Upload the artifacts for this version
-            release_name="Spigot Build $version"
-            response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"tag_name\": \"$version\", \"name\": \"$release_name\", \"body\": \"Build artifacts for version $version\"}" \
-              "https://api.github.com/repos/${{ github.repository }}/releases")
-            release_id=$(echo "$response" | jq -r '.id')
-
-            for file in artifacts/*.jar; do
-              echo "Uploading $file for version $version"
-              curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-                -H "Content-Type: application/java-archive" \
-                --data-binary "@$file" \
-                "https://uploads.github.com/repos/${{ github.repository }}/releases/$release_id/assets?name=$(basename $file)"
-            done
-
-            # Clean up artifacts directory to avoid re-uploading
-            rm -rf artifacts
-          done
-
-  cleanup-releases:
+  upload-artifacts:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+      
+      # Download build artifacts from previous job
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
 
-      - name: Delete Old Releases
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Spigot Artifacts
+          path: ./*.jar
+
+  upload-release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+
+      # Download build artifacts from previous job
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Fetch all releases
-          releases=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/releases")
-          
-          # Parse and delete all but the latest release for each version
-          echo "$releases" | jq -c '.[]' | while read release; do
-            release_id=$(echo "$release" | jq -r '.id')
-            release_tag=$(echo "$release" | jq -r '.tag_name')
-            if [ "$release_tag" != "latest" ]; then
-              echo "Deleting release with ID: $release_id and tag: $release_tag"
-              curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-                "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
-            fi
-          done
+        with:
+          tag_name: 'v1.0.${{ github.run_number }}'
+          release_name: 'Release v1.0.${{ github.run_number }}'
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./*.jar
+          asset_name: 'BuildTools-v1.0-${{ github.run_number }}.jar'
+          asset_content_type: application/java-archive
