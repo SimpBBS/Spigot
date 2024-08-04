@@ -1,0 +1,29 @@
+name: Build Version Request
+description: Request a specific version build of the software
+title: "[Build]: Request for version "
+labels: ["build"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please specify the version you want to build. Leave empty for the default latest version.
+  - type: input
+    id: build-version
+    attributes:
+      label: Build Version
+      description: Enter the version you want to build. Default is 'latest'.
+      placeholder: latest
+    validations:
+      required: false
+  - type: checkboxes
+    id: skip-release
+    attributes:
+      label: Skip Release
+      description: Check this if you do not want to create a release for this build.
+      options:
+        - label: Do not create a release for this build.
+          required: false
+  - type: markdown
+    attributes:
+      value: |
+        By submitting this request, you agree to comply with the project guidelines.
