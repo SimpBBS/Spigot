@@ -2,7 +2,7 @@ name: Build
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 每天午夜（00:00 UTC）运行
+    - cron: '0 0 * * *'  # Runs daily at midnight (00:00 UTC)
   push:
     branches: [ main ]
   pull_request:
@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v2
       
       - name: Download BuildTools.jar
+        # Download the latest BuildTools.jar
         run: curl -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
 
       - uses: actions/setup-java@v1
@@ -24,6 +25,7 @@ jobs:
           java-version: 21
 
       - name: Run with Java
+        # Build all specified Minecraft versions, including latest
         run: |
           for version in latest 1.20.4 1.20.3 1.20.2 1.20.1 1.19.4 1.19.3 1.19.2 1.19.1 1.19 1.18.2 1.18.1 1.18 1.17.1 1.17 1.16.5 1.16.4 1.16.3 1.16.2 1.16.1 1.15.2 1.15.1 1.15 1.14.4 1.14.3 1.14.2 1.14.1 1.14 1.13.2 1.13.1 1.13 1.12.2 1.12.1 1.12 1.11.2 1.11.1 1.11 1.10.2 1.9.4 1.9.2 1.9 1.8.8 1.8.3 1.8; do
             echo "Building version $version"
@@ -32,6 +34,7 @@ jobs:
 
       - name: Find and Upload Spigot Artifacts
         id: upload-artifacts
+        # Find all spigot jars and prepare for upload
         run: |
           mkdir -p artifacts
           find . -name 'spigot-*.jar' -exec cp {} artifacts/ \;
@@ -47,6 +50,7 @@ jobs:
       - name: Delete Previous Release (if any)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Delete the latest existing release, if any
         run: |
           # Get the latest release
           release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
@@ -64,6 +68,7 @@ jobs:
         id: create-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Create a new release for the latest build
         run: |
           response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
@@ -75,6 +80,7 @@ jobs:
       - name: Upload Release Assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Upload all artifacts to the new release
         run: |
           release_id=${{ steps.create-release.outputs.release-id }}
           for file in ${{ needs.build.outputs.artifacts }}; do
