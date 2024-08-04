@@ -20,7 +20,7 @@ jobs:
       - name: Download BuildTools.jar
         run: curl -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
 
-      - uses: actions/setup-java@v2  # Updated to the latest version
+      - uses: actions/setup-java@v1  # Updated to the latest version
         with:
           java-version: 21
 
