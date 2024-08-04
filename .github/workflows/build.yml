@@ -56,7 +56,7 @@ jobs:
       - name: Run BuildTools
         run: |
           if [ "${{ env.BUILD_VERSION }}" == "latest" ]; then
-            java -jar BuildTools.jar
+            java -jar BuildTools.jar --dev
           else
             java -jar BuildTools.jar --rev $BUILD_VERSION
           fi
