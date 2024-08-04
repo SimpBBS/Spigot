@@ -25,14 +25,17 @@ jobs:
           java-version: 21
           distribution: 'temurin'  # Specifying the Java distribution
 
+      - name: Install jq
+        run: sudo apt-get install jq
+
       - name: Determine Version
         id: determine_version
         run: |
           if [ "${{ github.event_name }}" == "issues" ]; then
-            # Get the issue body and extract the version
+            # Get the issue body and extract the version using jq
             VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}" \
-              | grep -Po '(?<="Build Version":\s*")[^"]*')
+              | jq -r '.body | match("Build Version: ([^\\n]*)"; "g") | .string // "latest"')
             if [ -z "$VERSION" ]; then
               VERSION="latest"
             fi
@@ -43,10 +46,12 @@ jobs:
 
       - name: Output Build Version
         run: |
-          echo "Building version: $VERSION"  # Outputs the build version to the logs
+          echo "Building version: $(cat $GITHUB_ENV | grep VERSION | cut -d '=' -f2)"  # Outputs the build version to the logs
 
       - name: Run with Java
-        run: java -jar BuildTools.jar --rev $VERSION  # Correctly using the VERSION environment variable
+        run: java -jar BuildTools.jar --rev $VERSION
+        env:
+          VERSION: ${{ env.VERSION }}
 
       - name: List files in workspace
         run: ls -alh  # Debugging step to verify generated files
