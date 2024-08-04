@@ -31,25 +31,21 @@ jobs:
         if: ${{ github.event_name == 'issues' }}
         uses: zentered/issue-forms-body-parser@v1.5.1
 
-      # Organize Inputs
+      # Organize Inputs and Determine Version
       - name: Organize Inputs
         id: organize_inputs
-        if: ${{ github.event_name == 'issues' }}
         run: |
-          echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
-          def test_input($input; $default):
-          if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";""))  end;
-          {
-            "build_version": test_input(.["build-version"].text; "latest")
-          }' > inputs.json
-          echo "BUILD_VERSION=$(jq -r '.build_version' inputs.json)" >> $GITHUB_ENV
-
-      # Determine Version for non-issue events
-      - name: Determine Version
-        id: determine_version
-        if: ${{ github.event_name != 'issues' }}
-        run: |
-          echo "BUILD_VERSION=latest" >> $GITHUB_ENV
+          if [ "${{ github.event_name }}" == "issues" ]; then
+            echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
+            def test_input($input; $default):
+            if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";""))  end;
+            {
+              "build_version": test_input(.["build-version"].text; "latest")
+            }' > inputs.json
+            echo "BUILD_VERSION=$(jq -r '.build_version' inputs.json)" >> $GITHUB_ENV
+          else
+            echo "BUILD_VERSION=latest" >> $GITHUB_ENV
+          fi
 
       - name: Output Build Version
         run: |
