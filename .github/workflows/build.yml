@@ -30,7 +30,7 @@ jobs:
           # Check if the event is triggered by an issue
           if [ "${{ github.event_name }}" == "issues" ]; then
             # Attempt to extract the build version from the issue body
-            VERSION=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=id: build-version\n\s{4}value: )\S+' || echo "")
+            VERSION=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=id: build-version\n\s{2}value: )\S+' || echo "")
             # Check if VERSION is empty and set to 'latest' if necessary
             if [ -z "$VERSION" ]; then
               echo "VERSION=latest" >> $GITHUB_ENV
@@ -45,19 +45,12 @@ jobs:
       - name: Run with Java
         run: java -jar BuildTools.jar --rev ${{ env.VERSION }}
 
-      # Save output as artifact to pass to next jobs
-      - name: Save Build Artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-artifacts
-          path: ./*.jar
-
   upload-artifacts:
     runs-on: ubuntu-latest
     needs: build
     steps:
       - uses: actions/checkout@v2
-
+      
       # Download build artifacts from previous job
       - name: Download Build Artifacts
         uses: actions/download-artifact@v2
