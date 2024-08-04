@@ -29,26 +29,24 @@ jobs:
         id: determine_version
         run: |
           if [ "${{ github.event_name }}" == "issues" ]; then
-            VERSION=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=id: build-version\n\s{2}value: )\S+' || echo "")
+            # Get the issue body and extract the version
+            VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}" \
+              | grep -Po '(?<="Build Version":\s*")[^"]*')
             if [ -z "$VERSION" ]; then
-              echo "VERSION=latest" >> $GITHUB_ENV
-            else
-              echo "VERSION=$VERSION" >> $GITHUB_ENV
+              VERSION="latest"
             fi
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
           else
             echo "VERSION=latest" >> $GITHUB_ENV
           fi
 
       - name: Output Build Version
         run: |
-          printf "Building version: %s\n" "$VERSION"  # Outputs the build version to the logs
-        env:
-          VERSION: ${{ env.VERSION }}
+          echo "Building version: $VERSION"  # Outputs the build version to the logs
 
       - name: Run with Java
         run: java -jar BuildTools.jar --rev $VERSION  # Correctly using the VERSION environment variable
-        env:
-          VERSION: ${{ env.VERSION }}
 
       - name: List files in workspace
         run: ls -alh  # Debugging step to verify generated files
@@ -60,7 +58,7 @@ jobs:
           path: ./spigot-*.jar
 
       - name: Auto release
-        uses: marvinpinto/action-automatic-releases@latest  # Using the specific version
+        uses: marvinpinto/action-automatic-releases@latest  # Using the latest version
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: latest
@@ -74,6 +72,6 @@ jobs:
     if: ${{ github.event_name == 'issues' }}
     steps:
       - name: Close Issue
-        uses: peter-evans/close-issue@v3  # Using the specific version
+        uses: peter-evans/close-issue@v3  # Using the latest version
         with:
           issue-number: ${{ github.event.issue.number }}
