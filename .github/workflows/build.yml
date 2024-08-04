@@ -1,9 +1,22 @@
+name: Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight (00:00 UTC)
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  issues:
+    types: [opened, edited]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
+      # Step to download the BuildTools.jar file
       - name: Download BuildTools.jar
         run: curl -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
 
@@ -56,19 +69,29 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use default token
         with:
-          tag_name: 'v1.0.${{ github.run_number }}'
-          release_name: 'Release v1.0.${{ github.run_number }}'
+          tag_name: 'latest'  # Use 'latest' as tag name
+          release_name: 'latest'  # Use 'latest' as release name
           draft: false
           prerelease: false
 
       - name: Upload Release Assets
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use default token
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./*.jar
-          asset_name: 'BuildTools-v1.0-${{ github.run_number }}.jar'
+          asset_name: 'BuildTools-latest.jar'
           asset_content_type: application/java-archive
+
+  close-issue:
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event_name == 'issues' }}
+    steps:
+      - name: Close Issue
+        uses: peter-evans/close-issue@v3
+        with:
+          issue-number: ${{ github.event.issue.number }}
