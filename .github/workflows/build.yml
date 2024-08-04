@@ -32,13 +32,15 @@ jobs:
           script: |
             const issueBody = '${{ github.event.issue.body }}';
             const versionMatch = issueBody.match(/id: build-version\n\s{2}value: (\S+)/);
-            if (versionMatch) {
-              core.exportVariable('VERSION', versionMatch[1]);
-            } else {
-              core.exportVariable('VERSION', 'latest');
-            }
+            const version = versionMatch ? versionMatch[1] : 'latest';
+            core.exportVariable('VERSION', version);
+            // Output the version
+            console.log(`Build Version: ${version}`);
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output Build Version
+        run: echo "Build Version: ${{ env.VERSION }}" > build-version.txt
 
       - name: Run with Java
         run: java -jar BuildTools.jar --rev ${{ env.VERSION }}  # Corrected environment variable usage
@@ -53,6 +55,12 @@ jobs:
         with:
           name: Spigot Artifacts
           path: ./spigot-*.jar
+
+      - name: Upload Build Version
+        uses: actions/upload-artifact@v4  # Using the latest version
+        with:
+          name: Build Version
+          path: build-version.txt
 
       - name: Auto release
         uses: marvinpinto/action-automatic-releases@latest  # Using the specific version
