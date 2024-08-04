@@ -53,8 +53,13 @@ jobs:
         env:
           BUILD_VERSION: ${{ env.BUILD_VERSION }}
 
-      - name: Run with Java
-        run: java -jar BuildTools.jar --rev $BUILD_VERSION
+      - name: Run BuildTools
+        run: |
+          if [ "${{ env.BUILD_VERSION }}" == "latest" ]; then
+            java -jar BuildTools.jar
+          else
+            java -jar BuildTools.jar --rev $BUILD_VERSION
+          fi
         env:
           BUILD_VERSION: ${{ env.BUILD_VERSION }}
 
