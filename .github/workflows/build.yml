@@ -23,6 +23,7 @@ jobs:
       - uses: actions/setup-java@v4  # Using the latest version
         with:
           java-version: 21
+          distribution: 'temurin'  # Specifying the Java distribution
 
       - name: Determine Version
         id: determine_version
@@ -39,7 +40,7 @@ jobs:
           fi
 
       - name: Run with Java
-        run: java -jar BuildTools.jar --rev $VERSION
+        run: java -jar BuildTools.jar --rev ${{ env.VERSION }}  # Corrected environment variable usage
         env:
           VERSION: ${{ env.VERSION }}
 
