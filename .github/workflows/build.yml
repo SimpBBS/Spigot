@@ -14,13 +14,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@latest  # Updated to the latest version
+      - uses: actions/checkout@latest  # Using the latest version
 
       # Step to download the BuildTools.jar file
       - name: Download BuildTools.jar
         run: curl -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
 
-      - uses: actions/setup-java@latest  # Updated to the latest version
+      - uses: actions/setup-java@latest  # Using the latest version
         with:
           java-version: 21
 
@@ -47,13 +47,13 @@ jobs:
         run: ls -alh  # Debugging step to verify generated files
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@latest  # Updated to the latest version
+        uses: actions/upload-artifact@latest  # Using the latest version
         with:
           name: Spigot Artifacts
           path: ./spigot-*.jar
 
       - name: Auto release
-        uses: marvinpinto/action-automatic-releases@latest  # Updated to the latest version
+        uses: marvinpinto/action-automatic-releases@latest  # Using the latest version
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: latest
@@ -67,6 +67,6 @@ jobs:
     if: ${{ github.event_name == 'issues' }}
     steps:
       - name: Close Issue
-        uses: peter-evans/close-issue@latest  # Updated to the latest version
+        uses: peter-evans/close-issue@latest  # Using the latest version
         with:
           issue-number: ${{ github.event.issue.number }}
