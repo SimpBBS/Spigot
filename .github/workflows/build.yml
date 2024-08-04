@@ -25,14 +25,16 @@ jobs:
           java-version: 21
           distribution: 'temurin'  # Specifying the Java distribution
 
-      # Parse issue form inputs
+      # Conditionally parse issue form inputs
       - name: Issue Forms Body Parser
         id: parse-issue
+        if: ${{ github.event_name == 'issues' }}
         uses: zentered/issue-forms-body-parser@v1.5.1
 
       # Organize Inputs
       - name: Organize Inputs
         id: organize_inputs
+        if: ${{ github.event_name == 'issues' }}
         run: |
           echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
           def test_input($input; $default):
@@ -41,6 +43,13 @@ jobs:
             "build_version": test_input(.["build-version"].text; "latest")
           }' > inputs.json
           echo "BUILD_VERSION=$(jq -r '.build_version' inputs.json)" >> $GITHUB_ENV
+
+      # Determine Version for non-issue events
+      - name: Determine Version
+        id: determine_version
+        if: ${{ github.event_name != 'issues' }}
+        run: |
+          echo "BUILD_VERSION=latest" >> $GITHUB_ENV
 
       - name: Output Build Version
         run: |
@@ -52,9 +61,6 @@ jobs:
         run: java -jar BuildTools.jar --rev $BUILD_VERSION
         env:
           BUILD_VERSION: ${{ env.BUILD_VERSION }}
-
-      - name: List files in workspace
-        run: ls -alh  # Debugging step to verify generated files
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4  # Using the latest version
@@ -80,3 +86,4 @@ jobs:
         uses: peter-evans/close-issue@v3  # Using the latest version
         with:
           issue-number: ${{ github.event.issue.number }}
+        continue-on-error: true  # Continue even if this step fails
