@@ -53,7 +53,7 @@ jobs:
           path: ./spigot-*.jar
 
       - name: Auto release
-        uses: marvinpinto/action-automatic-releases@v2  # Updated to the latest version
+        uses: marvinpinto/action-automatic-releases@latest  # Updated to the latest version
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: latest
