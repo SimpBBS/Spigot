@@ -27,12 +27,15 @@ jobs:
       - name: Determine Version
         id: determine_version
         run: |
-          # Extract version from issue body
-          VERSION=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=id: build-version\n- \n  value: )\S+')
-          if [ -z "$VERSION" ]; then
-            echo "VERSION=latest" >> $GITHUB_ENV
+          if [ "${{ github.event_name }}" == "issues" ]; then
+            VERSION=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=- Build Version\n\s{4}value: )\S+')
+            if [ -z "$VERSION" ]; then
+              echo "VERSION=latest" >> $GITHUB_ENV
+            else
+              echo "VERSION=$VERSION" >> $GITHUB_ENV
+            fi
           else
-            echo "VERSION=$VERSION" >> $GITHUB_ENV
+            echo "VERSION=latest" >> $GITHUB_ENV
           fi
 
       - name: Run with Java
@@ -66,7 +69,7 @@ jobs:
   upload-release:
     runs-on: ubuntu-latest
     needs: build
-    if: "!contains(github.event.issue.body, 'Do not create a release for this build')"
+    if: ${{ github.event_name != 'issues' }}
     steps:
       - uses: actions/checkout@v2
 

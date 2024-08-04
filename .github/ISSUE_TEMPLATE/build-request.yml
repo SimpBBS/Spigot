@@ -15,14 +15,6 @@ body:
       placeholder: latest
     validations:
       required: false
-  - type: checkboxes
-    id: skip-release
-    attributes:
-      label: Skip Release
-      description: Check this if you do not want to create a release for this build.
-      options:
-        - label: Do not create a release for this build.
-          required: false
   - type: markdown
     attributes:
       value: |
