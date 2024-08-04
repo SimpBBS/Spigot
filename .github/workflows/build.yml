@@ -29,10 +29,12 @@ jobs:
         id: determine_version
         run: |
           if [ "${{ github.event_name }}" == "issues" ]; then
-            # Get the issue body and extract the version using jq
+            # Get the issue body and extract the build-version using jq
             ISSUE_BODY=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}" \
               | jq -r '.body')
+
+            # Extract the build-version field from the issue body
             VERSION=$(echo "$ISSUE_BODY" | grep -oP '(?<=Build Version: )[^ \n]*' || echo "latest")
             echo "VERSION=$VERSION" >> $GITHUB_ENV
           else
