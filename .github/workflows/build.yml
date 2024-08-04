@@ -2,7 +2,7 @@ name: Build
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight (00:00 UTC)
+    - cron: '0 * * * *'  # Runs every hour at the start of the hour (UTC)
   push:
     branches: [ main ]
   pull_request:
