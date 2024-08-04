@@ -65,6 +65,7 @@ jobs:
           path: ./spigot-*.jar
 
       - name: Auto release
+        if: ${{ github.event_name != 'issues' }}
         uses: marvinpinto/action-automatic-releases@latest  # Using the latest version
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
