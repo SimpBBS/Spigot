@@ -39,7 +39,9 @@ jobs:
           fi
 
       - name: Run with Java
-        run: java -jar BuildTools.jar --rev ${{ env.VERSION }}
+        run: java -jar BuildTools.jar --rev $VERSION
+        env:
+          VERSION: ${{ env.VERSION }}
 
       - name: List files in workspace
         run: ls -alh  # Debugging step to verify generated files
