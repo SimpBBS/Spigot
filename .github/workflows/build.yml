@@ -1,32 +1,86 @@
-name: CI
+name: Build
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight (00:00 UTC)
+    - cron: '0 0 * * *'  # 每天午夜（00:00 UTC）运行
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  latest:
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      artifacts: ${{ steps.upload-artifacts.outputs.artifacts-path }}
     steps:
       - uses: actions/checkout@v2
       
-      # Step to download the BuildTools.jar file
       - name: Download BuildTools.jar
         run: curl -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
 
       - uses: actions/setup-java@v1
         with:
           java-version: 21
-          
+
       - name: Run with Java
-        run: java -jar BuildTools.jar --rev latest
-        
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: Spigot Artifacts
-          path: ./*.jar
+        run: |
+          for version in latest 1.20.4 1.20.3 1.20.2 1.20.1 1.19.4 1.19.3 1.19.2 1.19.1 1.19 1.18.2 1.18.1 1.18 1.17.1 1.17 1.16.5 1.16.4 1.16.3 1.16.2 1.16.1 1.15.2 1.15.1 1.15 1.14.4 1.14.3 1.14.2 1.14.1 1.14 1.13.2 1.13.1 1.13 1.12.2 1.12.1 1.12 1.11.2 1.11.1 1.11 1.10.2 1.9.4 1.9.2 1.9 1.8.8 1.8.3 1.8; do
+            echo "Building version $version"
+            java -jar BuildTools.jar --rev $version
+          done
+
+      - name: Find and Upload Spigot Artifacts
+        id: upload-artifacts
+        run: |
+          mkdir -p artifacts
+          find . -name 'spigot-*.jar' -exec cp {} artifacts/ \;
+          echo "::set-output name=artifacts-path::$(ls artifacts/*.jar | tr '\n' ' ')"
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Delete Previous Release (if any)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the latest release
+          release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/latest" | \
+            jq -r '.id')
+          if [ "$release_id" != "null" ]; then
+            echo "Deleting previous release with ID: $release_id"
+            curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+          else
+            echo "No previous release found."
+          fi
+
+      - name: Create New Release
+        id: create-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"tag_name": "latest", "name": "Latest Build", "body": "Build artifacts for the latest release"}' \
+            "https://api.github.com/repos/${{ github.repository }}/releases")
+          echo "$response"
+          echo "::set-output name=release-id::$(echo "$response" | jq -r '.id')"
+
+      - name: Upload Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_id=${{ steps.create-release.outputs.release-id }}
+          for file in ${{ needs.build.outputs.artifacts }}; do
+            echo "Uploading $file"
+            curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Content-Type: application/zip" \
+              --data-binary "@$file" \
+              "https://uploads.github.com/repos/${{ github.repository }}/releases/$release_id/assets?name=$(basename $file)"
+          done
