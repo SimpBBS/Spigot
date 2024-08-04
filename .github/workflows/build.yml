@@ -14,33 +14,33 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4  # Using the latest version
+      - uses: actions/checkout@latest  # Using the latest version
 
       # Step to download the BuildTools.jar file
       - name: Download BuildTools.jar
         run: curl -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
 
-      - uses: actions/setup-java@v4  # Using the latest version
+      - uses: actions/setup-java@latest  # Using the latest version
         with:
           java-version: 21
-          distribution: 'temurin'  # Specifying the Java distribution
 
       - name: Determine Version
         id: determine_version
-        run: |
-          if [ "${{ github.event_name }}" == "issues" ]; then
-            VERSION=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=id: build-version\n\s{2}value: )\S+' || echo "")
-            if [ -z "$VERSION" ]; then
-              echo "VERSION=latest" >> $GITHUB_ENV
-            else
-              echo "VERSION=$VERSION" >> $GITHUB_ENV
-            fi
-          else
-            echo "VERSION=latest" >> $GITHUB_ENV
-          fi
+        uses: actions/github-script@latest
+        with:
+          script: |
+            const issueBody = '${{ github.event.issue.body }}';
+            const versionMatch = issueBody.match(/id: build-version\n\s{2}value: (\S+)/);
+            if (versionMatch) {
+              core.exportVariable('VERSION', versionMatch[1]);
+            } else {
+              core.exportVariable('VERSION', 'latest');
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run with Java
-        run: java -jar BuildTools.jar --rev ${{ env.VERSION }}  # Corrected environment variable usage
+        run: java -jar BuildTools.jar --rev $VERSION
         env:
           VERSION: ${{ env.VERSION }}
 
@@ -48,7 +48,7 @@ jobs:
         run: ls -alh  # Debugging step to verify generated files
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4  # Using the latest version
+        uses: actions/upload-artifact@latest  # Using the latest version
         with:
           name: Spigot Artifacts
           path: ./spigot-*.jar
@@ -68,6 +68,6 @@ jobs:
     if: ${{ github.event_name == 'issues' }}
     steps:
       - name: Close Issue
-        uses: peter-evans/close-issue@v3  # Using the latest version
+        uses: peter-evans/close-issue@latest  # Using the latest version
         with:
           issue-number: ${{ github.event.issue.number }}
