@@ -74,13 +74,10 @@ jobs:
           files: |
             spigot-*.jar
 
-  close-issue:
-    runs-on: ubuntu-latest
-    needs: build  # Ensures this job runs after 'build' job
-    if: ${{ github.event_name == 'issues' }}
-    steps:
+      # Close Issue if triggered by an issue event
       - name: Close Issue
-        uses: peter-evans/close-issue@v3  # Using the latest version
+        if: ${{ github.event_name == 'issues' }}
+        uses: peter-evans/close-issue@v3
         with:
           issue-number: ${{ github.event.issue.number }}
         continue-on-error: true  # Continue even if this step fails
