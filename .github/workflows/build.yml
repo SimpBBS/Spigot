@@ -25,32 +25,33 @@ jobs:
           java-version: 21
           distribution: 'temurin'  # Specifying the Java distribution
 
-      - name: Determine Version
-        id: determine_version
-        run: |
-          if [ "${{ github.event_name }}" == "issues" ]; then
-            # Get the issue body and extract the build-version using jq
-            ISSUE_BODY=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}" \
-              | jq -r '.body')
+      # Parse issue form inputs
+      - name: Issue Forms Body Parser
+        id: parse-issue
+        uses: zentered/issue-forms-body-parser@v1.5.1
 
-            # Extract the build-version field from the issue body
-            VERSION=$(echo "$ISSUE_BODY" | grep -oP '(?<=Build Version: )[^ \n]*' || echo "latest")
-            echo "VERSION=$VERSION" >> $GITHUB_ENV
-          else
-            echo "VERSION=latest" >> $GITHUB_ENV
-          fi
+      # Organize Inputs
+      - name: Organize Inputs
+        id: organize_inputs
+        run: |
+          echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
+          def test_input($input; $default):
+          if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";""))  end;
+          {
+            "build_version": test_input(.["build-version"].text; "latest")
+          }' > inputs.json
+          echo "BUILD_VERSION=$(jq -r '.build_version' inputs.json)" >> $GITHUB_ENV
 
       - name: Output Build Version
         run: |
-          echo "Building version: $VERSION"
+          echo "Building version: $BUILD_VERSION"
         env:
-          VERSION: ${{ env.VERSION }}
+          BUILD_VERSION: ${{ env.BUILD_VERSION }}
 
       - name: Run with Java
-        run: java -jar BuildTools.jar --rev $VERSION
+        run: java -jar BuildTools.jar --rev $BUILD_VERSION
         env:
-          VERSION: ${{ env.VERSION }}
+          BUILD_VERSION: ${{ env.BUILD_VERSION }}
 
       - name: List files in workspace
         run: ls -alh  # Debugging step to verify generated files
