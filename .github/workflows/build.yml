@@ -7,6 +7,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  issues:
+    types: [opened, edited]
 
 jobs:
   build:
@@ -22,8 +24,17 @@ jobs:
         with:
           java-version: 21
 
+      - name: Determine Version
+        id: determine_version
+        run: |
+          if [ -z "${{ github.event.issue.body }}" ]; then
+            echo "VERSION=latest" >> $GITHUB_ENV
+          else
+            echo "VERSION=${{ github.event.issue.body }}" >> $GITHUB_ENV
+          fi
+
       - name: Run with Java
-        run: java -jar BuildTools.jar --rev latest
+        run: java -jar BuildTools.jar --rev ${{ env.VERSION }}
 
       # Save output as artifact to pass to next jobs
       - name: Save Build Artifacts
@@ -53,6 +64,7 @@ jobs:
   upload-release:
     runs-on: ubuntu-latest
     needs: build
+    if: contains(github.event.issue.labels.*.name, 'build')
     steps:
       - uses: actions/checkout@v2
 
